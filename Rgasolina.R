@@ -106,8 +106,9 @@ demanda_gas[,3:28][is.na(demanda_gas[,3:28])] <-0
 demanda_gas$lon <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[1]
 demanda_gas$lat <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[2]
 demanda_gas2 <- as.data.frame(demanda_gas)[!demanda_gas$Petrolifero!= c("Gasolinas", "Turbosina", "Diesel"),]
-demanda_gas2 <- melt(demanda_gas2, id=(c("locacion", "Petrolifero", "Superintendencia", "estado", "ciudad", "lon", "lat")))
-
+demanda_gas2 <- melt(demanda_gas2, id.vars=c("Superintendencia", "Petrolifero", "estado", "ciudad", "locacion"), variable.name="ano", value.name="mbd")
+gg <- ggplot(demanda_gas2, aes(x=variable, y=value))
+gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~estado)
 
 
 
