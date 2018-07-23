@@ -1,7 +1,8 @@
-## install.packages("dplyr")
-## install.packages("tidyr")
-## install.packages("reshape")
-## install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("reshape")
+install.packages("ggplot2")
+install.packages("qdapRegex")
 
 library(plyr)
 library(dplyr)
@@ -13,7 +14,7 @@ library(qdapRegex)
 
 setwd("G:/Proyectos/Prospectiva 2018-2032/Prospectiva/Gasolina")
 
-## deshabilitar notación científica
+## deshabilitar notaci?n cient?fica
 options(scipen = 999)
 
 ##funcion
@@ -27,7 +28,7 @@ w_aceite <- read.csv("proceso_crudo.csv")
 names(w_aceite)[1] <- "Refineria"
 p_aceite <- melt(w_aceite, id=(c("Refineria", "Crudo")))
 p_aceite$Crudo <- trimws(p_aceite$Crudo, which = c("left"))
-p_aceite$Crudo <- gsub("Ã", "i", p_aceite$Crudo)
+p_aceite$Crudo <- gsub("?", "i", p_aceite$Crudo)
 p_aceite$Crudo <- gsub("Otras corrientes a", "Otro", p_aceite$Crudo)
 p_aceite$Crudo <- gsub("Reconstituido", "Pesado", p_aceite$Crudo)
 p_aceite$Crudo <- as.factor(p_aceite$Crudo)
@@ -77,7 +78,7 @@ ddply(tot, .(Crudo, Producto), .fun=agregado)
 write.csv(tot, file="tot.csv")
 
 
-## Cargar la información de demanda
+## Cargar la informaci?n de demanda
 demanda_gas <- read_excel('gasolina_entidad.xlsx', sheet='Base')
 demanda_gas$estado <- rm_between(demanda_gas$Superintendencia, "(", ")", extract=TRUE)
 demanda_gas$Petrolifero <- as.factor(demanda_gas$Petrolifero)
@@ -100,29 +101,30 @@ library(ggmap)
 library(lattice)
 
 
-# cargar la información de coordenadas
+# cargar la informaci?n de coordenadas
 demanda_gas$locacion <- paste(demanda_gas$ciudad, demanda_gas$estado)
 demanda_gas[,3:28][is.na(demanda_gas[,3:28])] <-0
-demanda_gas$lon <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[1]
-demanda_gas$lat <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[2]
+aggregate(cbind(`1993`, `1994`, `1995`, `1996`, `1997`, `1998`, `1999`, `2000`, `2001`,`2002`, `2003`, `2004`, `2018`) ~ estado, demanda_gas, sum)
 demanda_gas2 <- as.data.frame(demanda_gas)[!demanda_gas$Petrolifero!= c("Gasolinas", "Turbosina", "Diesel"),]
 demanda_gas2 <- melt(demanda_gas2, id.vars=c("Superintendencia", "Petrolifero", "estado", "ciudad", "locacion"), variable.name="ano", value.name="mbd")
+demanda_gas$lon <- geocode(demanda_gas$locacion, output="latlona", source="google")[1]
+demanda_gas$lat <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[2]
 gg <- ggplot(demanda_gas2, aes(x=variable, y=value))
 gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~estado)
 
 
 
 
-## Cargar la información de prospectiva
+## Cargar la informaci?n de prospectiva
 prospectiva.wide <- read.csv("G:/Proyectos/Prospectiva 2018-2032/Prospectiva/Para SENER/Base prospectiva 2018-2032.csv")
 prospectiva.long <- melt(prospectiva.wide, id=c("tipo", "ronda", "actividad", "activo", "provincia", "ubic", "p_prin_tipo_h", "hidroc_principal", "clasificacion", "licitacion", "bloque", "empresa", "escenario", "concepto") )
 colnames(prospectiva.long)[colnames(prospectiva.long)=="value"] <- "montodiario"
 colnames(prospectiva.long)[colnames(prospectiva.long)=="variable"] <- "periodo"
 
-# filtramos para quedarnos sólo con aceite y escenario medio
+# filtramos para quedarnos s?lo con aceite y escenario medio
 prospectiva.long %>% filter(concepto=='aceite_mbd' & escenario=='MEDIO')
 
 
-## visualizar la información
+## visualizar la informaci?n
 ggplot(tot, aes(x=Crudo, y=producto_mbd, fill=Crudo)) + geom_point(aes(colour=factor(Producto))) + facet_wrap(~Refineria)
 
