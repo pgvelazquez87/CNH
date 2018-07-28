@@ -1,8 +1,8 @@
-install.packages("dplyr")
-install.packages("tidyr")
-install.packages("reshape")
-install.packages("ggplot2")
-install.packages("qdapRegex")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("reshape")
+#install.packages("ggplot2")
+#install.packages("qdapRegex")
 
 library(plyr)
 library(dplyr)
@@ -94,25 +94,46 @@ demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$S
 demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "Lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
 demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
 
-#install_packages("ggmap")
+#install.packages("ggmap")
+#install.packages("stringr")
+#install.packages("maps", dependencies=TRUE)
+#install.packages("mapdata", dependencies=TRUE)
 library(devtools)
 library(rjson)
 library(ggmap)
 library(lattice)
+library(stringr)
+library(maps)
+library(mapdata)
 
 
-# cargar la informaci?n de coordenadas
+
+# cargar la información de coordenadas
 demanda_gas$locacion <- paste(demanda_gas$ciudad, demanda_gas$estado)
 demanda_gas[,3:28][is.na(demanda_gas[,3:28])] <-0
-aggregate(cbind(`1993`, `1994`, `1995`, `1996`, `1997`, `1998`, `1999`, `2000`, `2001`,`2002`, `2003`, `2004`, `2018`) ~ estado, demanda_gas, sum)
-demanda_gas2 <- as.data.frame(demanda_gas)[!demanda_gas$Petrolifero!= c("Gasolinas", "Turbosina", "Diesel"),]
-demanda_gas2 <- melt(demanda_gas2, id.vars=c("Superintendencia", "Petrolifero", "estado", "ciudad", "locacion"), variable.name="ano", value.name="mbd")
-demanda_gas$lon <- geocode(demanda_gas$locacion, output="latlona", source="google")[1]
-demanda_gas$lat <- geocode(demanda_gas$locacion, output="latlona", source="dsk")[2]
-gg <- ggplot(demanda_gas2, aes(x=variable, y=value))
-gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~estado)
+demanda_gas2 <- aggregate(cbind(`1993`, `1994`, `1995`, `1996`, `1997`, `1998`, `1999`, `2000`, `2001`,`2002`, `2003`, `2004`, `2005`, `2006`,`2007`, `2008`, `2009`, `2010`, `2011`, `2012`, `2013`, `2014`,`2015`, `2016`, `2017`, `2018`) ~ locacion + Petrolifero, demanda_gas, sum)
+demanda_gas3 <- data.table(demanda_gas2)
+setkey(demanda_gas3, "Petrolifero")
+demanda_gas3 <- demanda_gas3[c("Gasolinas", "Diesel", "Turbosina"),]
+geocodes <- geocode(as.character(demanda_gas3$locacion), source="dsk")
+write.csv(geocodes, file="geocodes.csv", row.names=FALSE)
+demanda_gas3 <- data.frame(demanda_gas3[ , ], geocodes)
+geocodes_aux <- geocode(as.character(paste0(demanda_gas3$locacion[demanda_gas3$lat>33], ", Mexico")), source="dsk")
+geocodes_aux$location <- demanda_gas3$locacion[demanda_gas3$lat>33]
 
+####
 
+write.csv(demanda_gas3, file="demanda_gasolina_centro.csv", row.names=FALSE)
+#demanda_gas2 <- read.csv("demanda_gasolina_centro.csv")
+demanda_gas3 <- melt(demanda_gas3, id.vars=c("locacion", "Petrolifero", "lon", "lat"), variable.name="ano", value.name="mbd")
+
+gg <- ggplot(demanda_gas2, aes(x=ano, y=mbd))
+gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~locacion)
+
+# gráficar la información
+mex <- map_data("worldHires", "Mexico")
+gg1 <- ggplot() + geom_polygon(data= mex, aes(x=long, y=lat, group=group), fill = NA, color="black") + coord_fixed(1.3)
+gg1 + geom_point(data= demanda_gas3, aes(x=lon, y= lat, color=demanda_gas3$Petrolifero,  size=ifelse(demanda_gas3$X2017==0, NA, demanda_gas3$X2017), na.rm=TRUE))
 
 
 ## Cargar la informaci?n de prospectiva
