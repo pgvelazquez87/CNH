@@ -78,6 +78,20 @@ ddply(tot, .(Crudo, Producto), .fun=agregado)
 write.csv(tot, file="tot.csv")
 
 
+#install.packages("ggmap")
+#install.packages("stringr")
+#install.packages("maps", dependencies=TRUE)
+#install.packages("mapdata", dependencies=TRUE)
+library(devtools)
+library(rjson)
+library(ggmap)
+library(lattice)
+library(stringr)
+library(maps)
+library(mapdata)
+library(data.table)
+
+
 ## Cargar la informaci?n de demanda
 demanda_gas <- read_excel('gasolina_entidad.xlsx', sheet='Base')
 demanda_gas$estado <- rm_between(demanda_gas$Superintendencia, "(", ")", extract=TRUE)
@@ -94,17 +108,6 @@ demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$S
 demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "Lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
 demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
 
-#install.packages("ggmap")
-#install.packages("stringr")
-#install.packages("maps", dependencies=TRUE)
-#install.packages("mapdata", dependencies=TRUE)
-library(devtools)
-library(rjson)
-library(ggmap)
-library(lattice)
-library(stringr)
-library(maps)
-library(mapdata)
 
 
 
@@ -118,22 +121,31 @@ demanda_gas3 <- demanda_gas3[c("Gasolinas", "Diesel", "Turbosina"),]
 geocodes <- geocode(as.character(demanda_gas3$locacion), source="dsk")
 write.csv(geocodes, file="geocodes.csv", row.names=FALSE)
 demanda_gas3 <- data.frame(demanda_gas3[ , ], geocodes)
-geocodes_aux <- geocode(as.character(paste0(demanda_gas3$locacion[demanda_gas3$lat>33], ", Mexico")), source="dsk")
-geocodes_aux$location <- demanda_gas3$locacion[demanda_gas3$lat>33]
-
-####
-
-write.csv(demanda_gas3, file="demanda_gasolina_centro.csv", row.names=FALSE)
-#demanda_gas2 <- read.csv("demanda_gasolina_centro.csv")
-demanda_gas3 <- melt(demanda_gas3, id.vars=c("locacion", "Petrolifero", "lon", "lat"), variable.name="ano", value.name="mbd")
-
-gg <- ggplot(demanda_gas2, aes(x=ano, y=mbd))
-gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~locacion)
 
 # gráficar la información
 mex <- map_data("worldHires", "Mexico")
 gg1 <- ggplot() + geom_polygon(data= mex, aes(x=long, y=lat, group=group), fill = NA, color="black") + coord_fixed(1.3)
 gg1 + geom_point(data= demanda_gas3, aes(x=lon, y= lat, color=demanda_gas3$Petrolifero,  size=ifelse(demanda_gas3$X2017==0, NA, demanda_gas3$X2017), na.rm=TRUE))
+
+
+geocodes_aux <- geocode(as.character(paste0(demanda_gas3$locacion[demanda_gas3$lat>33], ", Mexico")), source="dsk")
+geocodes_aux$location <- demanda_gas3$locacion[demanda_gas3$lat>33]
+colnames(geocodes_aux)[colnames(geocodes_aux)=="location"] <- "locacion"
+# dado que existen varias ciudades que queremos reemplazar, tenemos hacer un loop 
+for (id in 1:nrow(geocodes_aux)){
+  demanda_gas3$lat[demanda_gas3$locacion %in% geocodes_aux$locacion[id]] <- geocodes_aux$lat[id]
+  demanda_gas3$lon[demanda_gas3$locacion %in% geocodes_aux$locacion[id]] <- geocodes_aux$lon[id]
+}
+
+
+####
+
+write.csv(demanda_gas3, file="demanda_gasolina_centro.csv", row.names=FALSE)
+demanda_gas3 <- melt(demanda_gas3, id.vars=c("locacion", "Petrolifero", "lon", "lat"), variable.name="ano", value.name="mbd")
+demanda_gas3$ano <- as.numeric(str_sub(demanda_gas3$ano, start=2, end=5))
+
+gg <- ggplot(demanda_gas3, aes(x=ano, y=mbd))
+gg + geom_point(aes(color=Petrolifero)) + facet_wrap(~locacion) + scale_x_continuous(breaks=seq(from=1993, to=2017, by=3)) + theme(axis.text.x = element_text(angle=90))
 
 
 ## Cargar la informaci?n de prospectiva
