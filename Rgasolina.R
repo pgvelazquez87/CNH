@@ -97,19 +97,8 @@ demanda_gas <- read_excel('gasolina_entidad.xlsx', sheet='Base')
 demanda_gas$estado <- rm_between(demanda_gas$Superintendencia, "(", ")", extract=TRUE)
 demanda_gas$Petrolifero <- as.factor(demanda_gas$Petrolifero)
 demanda_gas$estado <- as.factor(unlist(demanda_gas$estado, use.names=FALSE))
-
-demanda_gas$ciudad <- rm_between(demanda_gas$Superintendencia, "Ventas ", "(", extract=TRUE)
+demanda_gas$ciudad <- str_replace(string=demanda_gas$Superintendencia, pattern=".*(Ventas|foranea|terrestre|embarcador|satelite|Lubs.|lubs.|maritima|Sur,|Oriente,)\\s(\\w*\\s?\\w*?\\s?\\w*?)\\s\\(.*", replacement = "\\2")
 demanda_gas$ciudad <- gsub("Moclova", "Monclova", demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "foranea ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "terrestre ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "embarcador ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "maritima ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "satelite ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "Lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
-demanda_gas$ciudad <- ifelse(is.na(demanda_gas$ciudad), rm_between(demanda_gas$Superintendencia, "lubs. ", "(", extract=TRUE), demanda_gas$ciudad)
-
-
-
 
 # cargar la información de coordenadas
 demanda_gas$locacion <- paste(demanda_gas$ciudad, demanda_gas$estado)
